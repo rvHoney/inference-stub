@@ -1,6 +1,11 @@
 # inference-stub
 
-Minimalist, deterministic OpenAI-compatible stub for LLM infrastructure testing.
+> Minimalist, deterministic OpenAI-compatible stub for LLM infrastructure testing.
+
+[![Go Version](https://img.shields.io/badge/go-1.22.0-blue.svg)](https://golang.org)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
+[![CI](https://github.com/rvHoney/inference-stub/actions/workflows/release.yml/badge.svg)](https://github.com/rvHoney/inference-stub/actions/workflows/release.yml)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://github.com/rvHoney/inference-stub/pkgs/container/inference-stub)
 
 ## Overview
 
