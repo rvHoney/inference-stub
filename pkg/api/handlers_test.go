@@ -105,3 +105,55 @@ func TestChatCompletionsHandler_NoStream(t *testing.T) {
 		t.Errorf("unexpected content: %v", resp.Choices[0].Message.Content)
 	}
 }
+
+func TestChatCompletionsHandler_InvalidJSON(t *testing.T) {
+	cfg := HandlerConfig{}
+
+	reqBody := `{"model": "test-model", "messages": ` // malformed JSON
+	req, err := http.NewRequest("POST", "/v1/chat/completions", strings.NewReader(reqBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := ChatCompletionsHandler(cfg)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+}
+
+func TestChatCompletionsHandler_StreamOutput(t *testing.T) {
+	cfg := HandlerConfig{
+		TTFT: 2 * time.Millisecond,
+		TPOT: 1 * time.Millisecond,
+	}
+
+	reqBody := `{"model": "test-model", "messages": [], "stream": true}`
+	req, err := http.NewRequest("POST", "/v1/chat/completions", strings.NewReader(reqBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := ChatCompletionsHandler(cfg)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	bodyStr := rr.Body.String()
+
+	if !strings.Contains(bodyStr, "data: {") {
+		t.Errorf("Stream response does not contain JSON 'data:' chunks")
+	}
+
+	if !strings.Contains(bodyStr, "data: [DONE]\n\n") {
+		t.Errorf("Stream response is missing the final [DONE] signal")
+	}
+}
