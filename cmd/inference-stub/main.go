@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/rvHoney/inference-stub/internal/config"
+	"github.com/rvHoney/inference-stub/internal/logger"
 )
 
 func main() {
@@ -18,5 +19,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("inference-stub initialized", "config", cfg)
+	logger.Init(cfg)
+
+	slog.Debug("inference-stub initialized", "config", cfg)
 }
