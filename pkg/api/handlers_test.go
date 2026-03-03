@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/rvHoney/inference-stub/pkg/lorem"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
@@ -28,8 +30,9 @@ func TestHealthCheckHandler(t *testing.T) {
 
 func TestChatCompletionsHandler(t *testing.T) {
 	cfg := HandlerConfig{
-		TTFT: 10 * time.Millisecond,
-		TPOT: 5 * time.Millisecond,
+		TTFT:      10 * time.Millisecond,
+		TPOT:      5 * time.Millisecond,
+		Generator: lorem.New(50),
 	}
 
 	reqBody := `{"model": "test-model", "messages": [], "stream": true}`
@@ -65,8 +68,9 @@ func TestChatCompletionsHandler(t *testing.T) {
 
 func TestChatCompletionsHandler_NoStream(t *testing.T) {
 	cfg := HandlerConfig{
-		TTFT: 5 * time.Millisecond,
-		TPOT: 2 * time.Millisecond,
+		TTFT:      5 * time.Millisecond,
+		TPOT:      2 * time.Millisecond,
+		Generator: lorem.New(10),
 	}
 
 	reqBody := `{"model": "test-model", "messages": [{"role":"user", "content":"hello"}], "stream": false}`
@@ -101,13 +105,18 @@ func TestChatCompletionsHandler_NoStream(t *testing.T) {
 	if len(resp.Choices) != 1 {
 		t.Fatalf("expected 1 choice, got %v", len(resp.Choices))
 	}
-	if resp.Choices[0].Message.Content != "Hello! How can I assist you today?" {
-		t.Errorf("unexpected content: %v", resp.Choices[0].Message.Content)
+	if resp.Choices[0].Message.Content == "" {
+		t.Errorf("unexpected empty content")
+	}
+	if resp.Usage.CompletionTokens != 10 {
+		t.Errorf("expected 10 completion tokens, got %v", resp.Usage.CompletionTokens)
 	}
 }
 
 func TestChatCompletionsHandler_InvalidJSON(t *testing.T) {
-	cfg := HandlerConfig{}
+	cfg := HandlerConfig{
+		Generator: lorem.New(50),
+	}
 
 	reqBody := `{"model": "test-model", "messages": ` // malformed JSON
 	req, err := http.NewRequest("POST", "/v1/chat/completions", strings.NewReader(reqBody))
@@ -128,8 +137,9 @@ func TestChatCompletionsHandler_InvalidJSON(t *testing.T) {
 
 func TestChatCompletionsHandler_StreamOutput(t *testing.T) {
 	cfg := HandlerConfig{
-		TTFT: 2 * time.Millisecond,
-		TPOT: 1 * time.Millisecond,
+		TTFT:      2 * time.Millisecond,
+		TPOT:      1 * time.Millisecond,
+		Generator: lorem.New(50),
 	}
 
 	reqBody := `{"model": "test-model", "messages": [], "stream": true}`

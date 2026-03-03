@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/rvHoney/inference-stub/pkg/lorem"
 )
 
 // HandlerConfig holds configuration parameters required by endpoints.
 type HandlerConfig struct {
-	TTFT time.Duration
-	TPOT time.Duration
+	TTFT      time.Duration
+	TPOT      time.Duration
+	Generator *lorem.Generator
 }
 
 // HealthCheckHandler returns an HTTP 200 to indicate the server is alive.
@@ -63,7 +67,7 @@ func handleStreamResponse(w http.ResponseWriter, req ChatCompletionRequest, cfg 
 	sendStreamEvent(w, flusher, createStreamChunk(req.Model, ChatDelta{Role: "assistant"}, nil))
 
 	// Generate N tokens of Lorem Ipsum separated by TPOT
-	tokens := []string{"Lorem", " ", "ipsum", ",", " ", "dolor", " ", "sit", " ", "amet", ",", " ", "consectetur", " ", "adipiscing", " ", "elit", "."}
+	tokens := cfg.Generator.GenerateTokens()
 
 	for _, token := range tokens {
 		time.Sleep(cfg.TPOT)
@@ -99,12 +103,15 @@ func createStreamChunk(model string, delta ChatDelta, finishReason *string) Chat
 }
 
 func handleNonStreamResponse(w http.ResponseWriter, req ChatCompletionRequest, cfg HandlerConfig) {
-	tokenCount := 10
+	tokens := cfg.Generator.GenerateTokens()
+	tokenCount := len(tokens)
 	tpotDelay := time.Duration(tokenCount) * cfg.TPOT
 	time.Sleep(tpotDelay)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+
+	content := strings.Join(tokens, "")
 
 	resp := ChatCompletionResponse{
 		ID:                "chatcmpl-mock123",
@@ -117,7 +124,7 @@ func handleNonStreamResponse(w http.ResponseWriter, req ChatCompletionRequest, c
 				Index: 0,
 				Message: ChatMessage{
 					Role:    "assistant",
-					Content: "Hello! How can I assist you today?",
+					Content: content,
 				},
 				LogProbs:     nil,
 				FinishReason: "stop",
