@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -67,5 +68,41 @@ func TestParse(t *testing.T) {
 				t.Errorf("Parse() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestParse_EnvVars(t *testing.T) {
+	os.Setenv("PORT", "7070")
+	os.Setenv("TIMEOUT", "2m")
+	os.Setenv("TTFT", "300ms")
+	os.Setenv("TPOT", "15ms")
+	os.Setenv("DEBUG", "true")
+	os.Setenv("LENGTH", "100")
+	defer func() {
+		os.Unsetenv("PORT")
+		os.Unsetenv("TIMEOUT")
+		os.Unsetenv("TTFT")
+		os.Unsetenv("TPOT")
+		os.Unsetenv("DEBUG")
+		os.Unsetenv("LENGTH")
+	}()
+
+	// Call Parse with empty args to rely solely on env vars
+	got, err := Parse([]string{})
+	if err != nil {
+		t.Fatalf("Parse() failed with env vars set: %v", err)
+	}
+
+	want := &Config{
+		Port:    7070,
+		Timeout: 2 * time.Minute,
+		TTFT:    300 * time.Millisecond,
+		TPOT:    15 * time.Millisecond,
+		Debug:   true,
+		Length:  100,
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Parse() = %v, want %v", got, want)
 	}
 }
