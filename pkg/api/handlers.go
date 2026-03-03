@@ -44,7 +44,79 @@ func ChatCompletionsHandler(cfg HandlerConfig) http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 
 			slog.Debug("Connection accepted, holding stream based on mock parameters", "tpot", cfg.TPOT)
-			// TODO: Implement Lorem Ipsum token generation looping with TPOT delays
+
+			flusher, ok := w.(http.Flusher)
+			if !ok {
+				http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+				return
+			}
+
+			// Send initial empty chunk with assistant role
+			initialResp := ChatCompletionStreamResponse{
+				ID:                "chatcmpl-mock-stream123",
+				Object:            "chat.completion.chunk",
+				Created:           time.Now().Unix(),
+				Model:             req.Model,
+				SystemFingerprint: "fp_mock_stub",
+				Choices: []StreamChoice{
+					{
+						Index: 0,
+						Delta: ChatDelta{
+							Role: "assistant",
+						},
+						FinishReason: nil,
+					},
+				},
+			}
+			sendStreamEvent(w, flusher, initialResp)
+
+			// Generate N tokens of Lorem Ipsum separated by TPOT
+			tokens := []string{"Lorem", " ", "ipsum", ",", " ", "dolor", " ", "sit", " ", "amet", ",", " ", "consectetur", " ", "adipiscing", " ", "elit", "."}
+
+			for _, token := range tokens {
+				time.Sleep(cfg.TPOT)
+
+				chunkResp := ChatCompletionStreamResponse{
+					ID:                "chatcmpl-mock-stream123",
+					Object:            "chat.completion.chunk",
+					Created:           time.Now().Unix(),
+					Model:             req.Model,
+					SystemFingerprint: "fp_mock_stub",
+					Choices: []StreamChoice{
+						{
+							Index: 0,
+							Delta: ChatDelta{
+								Content: token,
+							},
+							FinishReason: nil,
+						},
+					},
+				}
+				sendStreamEvent(w, flusher, chunkResp)
+			}
+
+			// Send final chunk w/ finish_reason
+			time.Sleep(cfg.TPOT)
+			stopReason := "stop"
+			finalResp := ChatCompletionStreamResponse{
+				ID:                "chatcmpl-mock-stream123",
+				Object:            "chat.completion.chunk",
+				Created:           time.Now().Unix(),
+				Model:             req.Model,
+				SystemFingerprint: "fp_mock_stub",
+				Choices: []StreamChoice{
+					{
+						Index:        0,
+						Delta:        ChatDelta{},
+						FinishReason: &stopReason,
+					},
+				},
+			}
+			sendStreamEvent(w, flusher, finalResp)
+
+			// Send termination signal
+			w.Write([]byte("data: [DONE]\n\n"))
+			flusher.Flush()
 		} else {
 			tokenCount := 10
 			tpotDelay := time.Duration(tokenCount) * cfg.TPOT
@@ -83,4 +155,19 @@ func ChatCompletionsHandler(cfg HandlerConfig) http.HandlerFunc {
 			}
 		}
 	}
+}
+
+// sendStreamEvent convert a response chunk into JSON and writes it as an SSE data event.
+func sendStreamEvent(w http.ResponseWriter, flusher http.Flusher, resp ChatCompletionStreamResponse) {
+	data, err := json.Marshal(resp)
+	if err != nil {
+		slog.Error("Failed to marshal stream event", "error", err)
+		return
+	}
+
+	// SSE format "data: {json}\n\n"
+	w.Write([]byte("data: "))
+	w.Write(data)
+	w.Write([]byte("\n\n"))
+	flusher.Flush()
 }

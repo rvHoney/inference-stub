@@ -56,3 +56,26 @@ type CompletionTokensDetails struct {
 	AcceptedPredictionTokens int `json:"accepted_prediction_tokens"`
 	RejectedPredictionTokens int `json:"rejected_prediction_tokens"`
 }
+
+// ChatCompletionStreamResponse describes the chunk format for SSE responses.
+type ChatCompletionStreamResponse struct {
+	ID                string         `json:"id"`
+	Object            string         `json:"object"`
+	Created           int64          `json:"created"`
+	Model             string         `json:"model"`
+	SystemFingerprint string         `json:"system_fingerprint"`
+	Choices           []StreamChoice `json:"choices"`
+}
+
+// StreamChoice represents a single chunk choice.
+type StreamChoice struct {
+	Index        int       `json:"index"`
+	Delta        ChatDelta `json:"delta"`
+	FinishReason *string   `json:"finish_reason"` // nil while streaming, string at end
+}
+
+// ChatDelta holds the chunk of message content.
+type ChatDelta struct {
+	Role    string `json:"role,omitempty"`
+	Content string `json:"content,omitempty"`
+}
