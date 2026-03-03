@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rvHoney/inference-stub/pkg/api"
+	"github.com/rvHoney/inference-stub/pkg/lorem"
 )
 
 // Server holds the application state and configuration.
@@ -16,14 +17,15 @@ type Server struct {
 }
 
 // Init initializes a new Server and mounts the multiplexer.
-func Init(port int, timeout, ttft, tpot time.Duration) *Server {
+func Init(port int, timeout, ttft, tpot time.Duration, generator *lorem.Generator) *Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", api.HealthCheckHandler)
 
 	handlerCfg := api.HandlerConfig{
-		TTFT: ttft,
-		TPOT: tpot,
+		TTFT:      ttft,
+		TPOT:      tpot,
+		Generator: generator,
 	}
 	mux.HandleFunc("POST /v1/chat/completions", api.ChatCompletionsHandler(handlerCfg))
 

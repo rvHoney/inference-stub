@@ -14,6 +14,7 @@ import (
 
 	"github.com/rvHoney/inference-stub/internal/config"
 	"github.com/rvHoney/inference-stub/internal/logger"
+	"github.com/rvHoney/inference-stub/pkg/lorem"
 	"github.com/rvHoney/inference-stub/pkg/server"
 )
 
@@ -27,7 +28,9 @@ func main() {
 
 	slog.Debug("inference-stub initialized", "config", cfg)
 
-	srv := server.Init(cfg.Port, cfg.Timeout, cfg.TTFT, cfg.TPOT)
+	loremGen := lorem.New(cfg.Length)
+
+	srv := server.Init(cfg.Port, cfg.Timeout, cfg.TTFT, cfg.TPOT, loremGen)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

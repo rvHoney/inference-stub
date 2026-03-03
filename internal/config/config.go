@@ -15,6 +15,7 @@ type Config struct {
 	TPOT    time.Duration
 	Timeout time.Duration
 	Debug   bool
+	Length  int
 }
 
 // Parse initializes a Config struct according to startup flags.
@@ -28,6 +29,7 @@ func Parse(args []string) (*Config, error) {
 	fs.DurationVar(&cfg.TTFT, "ttft", 100*time.Millisecond, "Time to first token")
 	fs.DurationVar(&cfg.TPOT, "tpot", 20*time.Millisecond, "Time per output token")
 	fs.BoolVar(&cfg.Debug, "debug", false, "Enable debug logging")
+	fs.IntVar(&cfg.Length, "length", 50, "Number of generated lorem ipsum words")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of inference-stub:\n")

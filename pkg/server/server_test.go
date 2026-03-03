@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/rvHoney/inference-stub/pkg/lorem"
 )
 
 func TestServerLifecycle(t *testing.T) {
@@ -13,7 +15,8 @@ func TestServerLifecycle(t *testing.T) {
 	ttft := 10 * time.Millisecond
 	tpot := 10 * time.Millisecond
 
-	srv := Init(port, timeout, ttft, tpot)
+	loremGen := lorem.New(50)
+	srv := Init(port, timeout, ttft, tpot, loremGen)
 
 	if srv == nil || srv.httpServer == nil {
 		t.Fatal("Failed to initialize server")
