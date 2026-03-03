@@ -37,123 +37,102 @@ func ChatCompletionsHandler(cfg HandlerConfig) http.HandlerFunc {
 		time.Sleep(cfg.TTFT)
 
 		if req.Stream {
-			// SSE streaming headers
-			w.Header().Set("Content-Type", "text/event-stream")
-			w.Header().Set("Cache-Control", "no-cache")
-			w.Header().Set("Connection", "keep-alive")
-			w.WriteHeader(http.StatusOK)
-
-			slog.Debug("Connection accepted, holding stream based on mock parameters", "tpot", cfg.TPOT)
-
-			flusher, ok := w.(http.Flusher)
-			if !ok {
-				http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-				return
-			}
-
-			// Send initial empty chunk with assistant role
-			initialResp := ChatCompletionStreamResponse{
-				ID:                "chatcmpl-mock-stream123",
-				Object:            "chat.completion.chunk",
-				Created:           time.Now().Unix(),
-				Model:             req.Model,
-				SystemFingerprint: "fp_mock_stub",
-				Choices: []StreamChoice{
-					{
-						Index: 0,
-						Delta: ChatDelta{
-							Role: "assistant",
-						},
-						FinishReason: nil,
-					},
-				},
-			}
-			sendStreamEvent(w, flusher, initialResp)
-
-			// Generate N tokens of Lorem Ipsum separated by TPOT
-			tokens := []string{"Lorem", " ", "ipsum", ",", " ", "dolor", " ", "sit", " ", "amet", ",", " ", "consectetur", " ", "adipiscing", " ", "elit", "."}
-
-			for _, token := range tokens {
-				time.Sleep(cfg.TPOT)
-
-				chunkResp := ChatCompletionStreamResponse{
-					ID:                "chatcmpl-mock-stream123",
-					Object:            "chat.completion.chunk",
-					Created:           time.Now().Unix(),
-					Model:             req.Model,
-					SystemFingerprint: "fp_mock_stub",
-					Choices: []StreamChoice{
-						{
-							Index: 0,
-							Delta: ChatDelta{
-								Content: token,
-							},
-							FinishReason: nil,
-						},
-					},
-				}
-				sendStreamEvent(w, flusher, chunkResp)
-			}
-
-			// Send final chunk w/ finish_reason
-			time.Sleep(cfg.TPOT)
-			stopReason := "stop"
-			finalResp := ChatCompletionStreamResponse{
-				ID:                "chatcmpl-mock-stream123",
-				Object:            "chat.completion.chunk",
-				Created:           time.Now().Unix(),
-				Model:             req.Model,
-				SystemFingerprint: "fp_mock_stub",
-				Choices: []StreamChoice{
-					{
-						Index:        0,
-						Delta:        ChatDelta{},
-						FinishReason: &stopReason,
-					},
-				},
-			}
-			sendStreamEvent(w, flusher, finalResp)
-
-			// Send termination signal
-			w.Write([]byte("data: [DONE]\n\n"))
-			flusher.Flush()
+			handleStreamResponse(w, req, cfg)
 		} else {
-			tokenCount := 10
-			tpotDelay := time.Duration(tokenCount) * cfg.TPOT
-			time.Sleep(tpotDelay)
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-
-			resp := ChatCompletionResponse{
-				ID:                "chatcmpl-mock123",
-				Object:            "chat.completion",
-				Created:           time.Now().Unix(),
-				Model:             req.Model,
-				SystemFingerprint: "fp_mock_stub",
-				Choices: []Choice{
-					{
-						Index: 0,
-						Message: ChatMessage{
-							Role:    "assistant",
-							Content: "Hello! How can I assist you today?",
-						},
-						LogProbs:     nil,
-						FinishReason: "stop",
-					},
-				},
-				Usage: Usage{
-					PromptTokens:     19,
-					CompletionTokens: tokenCount,
-					TotalTokens:      19 + tokenCount,
-				},
-				ServiceTier: "default",
-			}
-
-			if err := json.NewEncoder(w).Encode(resp); err != nil {
-				slog.Error("Failed to encode response", "error", err)
-			}
+			handleNonStreamResponse(w, req, cfg)
 		}
+	}
+}
+
+func handleStreamResponse(w http.ResponseWriter, req ChatCompletionRequest, cfg HandlerConfig) {
+	// SSE streaming headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+
+	slog.Debug("Connection accepted, holding stream based on mock parameters", "tpot", cfg.TPOT)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	// Send initial empty chunk with assistant role
+	sendStreamEvent(w, flusher, createStreamChunk(req.Model, ChatDelta{Role: "assistant"}, nil))
+
+	// Generate N tokens of Lorem Ipsum separated by TPOT
+	tokens := []string{"Lorem", " ", "ipsum", ",", " ", "dolor", " ", "sit", " ", "amet", ",", " ", "consectetur", " ", "adipiscing", " ", "elit", "."}
+
+	for _, token := range tokens {
+		time.Sleep(cfg.TPOT)
+		sendStreamEvent(w, flusher, createStreamChunk(req.Model, ChatDelta{Content: token}, nil))
+	}
+
+	// Send final chunk w/ finish_reason
+	time.Sleep(cfg.TPOT)
+	stopReason := "stop"
+	sendStreamEvent(w, flusher, createStreamChunk(req.Model, ChatDelta{}, &stopReason))
+
+	// Send termination signal
+	w.Write([]byte("data: [DONE]\n\n"))
+	flusher.Flush()
+}
+
+// createStreamChunk build the ChatCompletionStreamResponse boilerplate
+func createStreamChunk(model string, delta ChatDelta, finishReason *string) ChatCompletionStreamResponse {
+	return ChatCompletionStreamResponse{
+		ID:                "chatcmpl-mock-stream123",
+		Object:            "chat.completion.chunk",
+		Created:           time.Now().Unix(),
+		Model:             model,
+		SystemFingerprint: "fp_mock_stub",
+		Choices: []StreamChoice{
+			{
+				Index:        0,
+				Delta:        delta,
+				FinishReason: finishReason,
+			},
+		},
+	}
+}
+
+func handleNonStreamResponse(w http.ResponseWriter, req ChatCompletionRequest, cfg HandlerConfig) {
+	tokenCount := 10
+	tpotDelay := time.Duration(tokenCount) * cfg.TPOT
+	time.Sleep(tpotDelay)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	resp := ChatCompletionResponse{
+		ID:                "chatcmpl-mock123",
+		Object:            "chat.completion",
+		Created:           time.Now().Unix(),
+		Model:             req.Model,
+		SystemFingerprint: "fp_mock_stub",
+		Choices: []Choice{
+			{
+				Index: 0,
+				Message: ChatMessage{
+					Role:    "assistant",
+					Content: "Hello! How can I assist you today?",
+				},
+				LogProbs:     nil,
+				FinishReason: "stop",
+			},
+		},
+		Usage: Usage{
+			PromptTokens:     19,
+			CompletionTokens: tokenCount,
+			TotalTokens:      19 + tokenCount,
+		},
+		ServiceTier: "default",
+	}
+
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		slog.Error("Failed to encode response", "error", err)
 	}
 }
 
