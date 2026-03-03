@@ -2,7 +2,7 @@ BINARY_NAME=inference-stub
 BIN_DIR=bin
 GO_FILES=$(shell find . -type f -name '*.go')
 
-.PHONY: all build clean run help
+.PHONY: all build clean run help test coverage coverage-html
 
 all: build
 
@@ -19,8 +19,18 @@ build-linux: $(BIN_DIR)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(BIN_DIR)/$(BINARY_NAME) ./cmd/inference-stub/main.go
 
 run: build
-	./$(BIN_DIR)/$(BINARY_NAME)
+	./$(BIN_DIR)/$(BINARY_NAME) $(ARGS)
+
+test:
+	go test -v ./...
+
+coverage:
+	go test -v -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+
+coverage-html: coverage
+	go tool cover -html=coverage.out -o coverage.html
 
 clean:
-	rm -rf $(BIN_DIR)
+	rm -rf $(BIN_DIR) *.out *.html
 	go clean
