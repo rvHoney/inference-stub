@@ -1,0 +1,28 @@
+# Version control directories
+.git
+
+# Local build output and binaries
+bin/
+*.exe
+*.test
+*.out
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependency cache / module directories
+vendor/
+
+# Docker setup files
+Dockerfile
+.dockerignore
+
+# Random misc scripts
+scripts/
+
+# Markdown / docs
+*.md
