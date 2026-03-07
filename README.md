@@ -36,10 +36,30 @@ make build
 - `--timeout` (default `1m0s`): Timeout for requests.
 - `--debug` (default `false`): Enable debug logging.
 
+## Deploying with Helm
+
+You can deploy `inference-stub` directly to your Kubernetes cluster using the provided Helm chart. The chart is published automatically to GHCR on release.
+
+```bash
+# from GHCR
+helm upgrade -i inference-stub oci://ghcr.io/robin-vidal/charts/inference-stub \
+  --version 0.2.0 \
+  --namespace inference-stub --create-namespace \
+  --set stubConfig.ttft=100ms \
+  --set stubConfig.tpot=20ms \
+  --set stubConfig.length=15
+```
+
+Alternatively, you can install it directly from the local source tree if you are developing:
+
+```bash
+helm upgrade -i inference-stub charts/inference-stub \
+  --namespace inference-stub --create-namespace
+```
+
 ## Roadmap
 - **Error Injection:** Support for simulating 429 Too Many Requests and 503 Service Unavailable.
 - **Usage Reporting:** Implementation of the usage field in the final stream chunk for quota-testing.
-- **Kubernetes Integration:** Helm charts and specialized manifests for kind deployments.
 
 ---
 *Developed for the GSoC 2026 - kgateway Performance Benchmarking project.*
