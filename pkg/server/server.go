@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rvHoney/inference-stub/pkg/api"
-	"github.com/rvHoney/inference-stub/pkg/lorem"
+	"github.com/robin-vidal/inference-stub/pkg/api"
+	"github.com/robin-vidal/inference-stub/pkg/lorem"
 )
 
 // Server holds the application state and configuration.

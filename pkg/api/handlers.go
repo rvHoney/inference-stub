@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rvHoney/inference-stub/pkg/lorem"
+	"github.com/robin-vidal/inference-stub/pkg/lorem"
 )
 
 // HandlerConfig holds configuration parameters required by endpoints.

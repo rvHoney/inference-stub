@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rvHoney/inference-stub/pkg/lorem"
+	"github.com/robin-vidal/inference-stub/pkg/lorem"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
