@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rvHoney/inference-stub/internal/config"
-	"github.com/rvHoney/inference-stub/internal/logger"
-	"github.com/rvHoney/inference-stub/pkg/lorem"
-	"github.com/rvHoney/inference-stub/pkg/server"
+	"github.com/robin-vidal/inference-stub/internal/config"
+	"github.com/robin-vidal/inference-stub/internal/logger"
+	"github.com/robin-vidal/inference-stub/pkg/lorem"
+	"github.com/robin-vidal/inference-stub/pkg/server"
 )
 
 func main() {

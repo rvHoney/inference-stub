@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/rvHoney/inference-stub/internal/config"
+	"github.com/robin-vidal/inference-stub/internal/config"
 )
 
 func Init(cfg *config.Config) {
