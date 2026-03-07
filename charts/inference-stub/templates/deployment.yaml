@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inference-stub.fullname" . }}
+  labels:
+    {{- include "inference-stub.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "inference-stub.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "inference-stub.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--ttft"
+            - "{{ .Values.stubConfig.ttft }}"
+            - "--tpot"
+            - "{{ .Values.stubConfig.tpot }}"
+            - "--length"
+            - "{{ .Values.stubConfig.length }}"
+            - "--timeout"
+            - "{{ .Values.stubConfig.timeout }}"
+            - "--port"
+            - "{{ .Values.stubConfig.port }}"
+            {{- if .Values.stubConfig.debug }}
+            - "--debug"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.stubConfig.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
