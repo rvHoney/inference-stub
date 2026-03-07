@@ -1,0 +1,41 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish-helm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Ensure correct chart version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          echo "Setting chart version to $TAG"
+          sed -i "s/^version:.*/version: $TAG/" charts/inference-stub/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"$TAG\"/" charts/inference-stub/Chart.yaml
+
+      - name: Package Helm Chart
+        run: |
+          helm package charts/inference-stub -d .
+
+      - name: Push Helm Chart to GHCR
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          helm push inference-stub-$TAG.tgz oci://ghcr.io/robin-vidal/charts
